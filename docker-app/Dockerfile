@@ -4,6 +4,7 @@
 
 # pull a builder image, the same as the base
 # This base image supports both AMD64 and ARM64 architectures
+# This base image supports both AMD64 and ARM64 architectures
 FROM python:3.10-slim-bookworm AS build
 
 # Disable annoying pip version check, we don't care if pip is slightly older
@@ -13,11 +14,17 @@ ARG PIP_DISABLE_PIP_VERSION_CHECK=1
 ARG PIP_NO_CACHE_DIR=1
 
 # install psycopg2 and GDAL requirements for building packages like fiona
+# install psycopg2 and GDAL requirements for building packages like fiona
 RUN apt-get update \
     && apt-get install -y \
     libpq-dev \
     python3-dev \
     gcc \
+    git \
+    g++ \
+# GDAL development headers needed for building fiona and other geospatial packages
+    libgdal-dev \
+    gdal-bin \
     g++ \
 # GDAL development headers needed for building fiona and other geospatial packages
     libgdal-dev \
@@ -26,6 +33,9 @@ RUN apt-get update \
 
 # install `pip-compile` (as part of `pip-tools`)
 RUN pip3 install pip-tools
+
+# Set GDAL environment variables for building packages like fiona
+ENV GDAL_CONFIG=/usr/bin/gdal-config
 
 # Set GDAL environment variables for building packages like fiona
 ENV GDAL_CONFIG=/usr/bin/gdal-config
@@ -44,6 +54,7 @@ RUN ls -Q /usr/local/lib/python3.10/site-packages/botocore/data | grep -xv "endp
 
 # pull official base image
 # This base image supports both AMD64 and ARM64 architectures
+# This base image supports both AMD64 and ARM64 architectures
 FROM python:3.10-slim-bookworm AS base
 
 # set work directory
@@ -58,12 +69,18 @@ ENV PIP_DISABLE_PIP_VERSION_CHECK=1
 ENV PIP_NO_CACHE_DIR=1
 # GDAL configuration for building geospatial packages
 ENV GDAL_CONFIG=/usr/bin/gdal-config
+# GDAL configuration for building geospatial packages
+ENV GDAL_CONFIG=/usr/bin/gdal-config
 
 # install dependencies
 RUN apt-get update \
     && apt-get install -y \
 # GeoDjango as recommended at https://docs.djangoproject.com/en/4.1/ref/contrib/gis/install/geolibs/#installing-geospatial-libraries
     binutils libproj-dev gdal-bin \
+# GDAL development headers needed for building packages like fiona in test environments
+    libgdal-dev \
+# Build tools needed for compiling Python packages with C++ extensions
+    gcc g++ python3-dev \
 # GDAL development headers needed for building packages like fiona in test environments
     libgdal-dev \
 # Build tools needed for compiling Python packages with C++ extensions
